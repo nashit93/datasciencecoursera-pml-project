@@ -1,0 +1,146 @@
+---
+title: "PML-Assignment"
+author: "Nashit"
+date: "Aug,23 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+In this project, our goal is to predict the manner in which they did the exercise. This is the "classe" variable in the training set. You may use any of the other variables to predict with. You should create a report describing how you built your model, how you used cross validation, what you think the expected out of sample error is, and why you made the choices you did. You will also use your prediction model to predict 20 different test cases.
+
+
+
+
+
+```{r initialise}
+
+
+
+testFileName = "pml-testing.csv"
+trainFileName = "pml-training.csv"
+# Downloading and loading the training data
+if (!file.exists(trainFileName)) {
+download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", 
+              destfile = "./pml-training.csv", method = "curl")
+}
+
+train <- read.csv("./pml-training.csv", na.strings=c("NA","#DIV/0!",""))
+
+# Downloading and loading the testing data
+if (!file.exists(testFileName)) {
+download.file(url = "https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", 
+              destfile = "./pml-testing.csv", method = "curl")
+}
+
+test <- read.csv("./pml-testing.csv", na.strings=c("NA","#DIV/0!",""))
+
+
+
+
+
+```
+
+## Exploring the data
+
+Let us try to get some basic summary about the data and lets try to take out the valuable information out of it.
+
+```{r value}
+
+
+summary(train)
+
+str(train)
+
+
+
+
+
+
+```
+
+## Lets have a quick look at the classe variable 
+
+
+```{r quick}
+
+summary(train$classe)
+
+prop.table(table(train$classe))
+
+
+
+
+```
+
+## Removing Extras & NAs
+
+So as we can see from the above information that we can remove the columns 1 to 6 which will not at all help in our prediction.
+
+
+```{r remove_Extras}
+
+train <- train[, 7:160]
+test  <- test[, 7:160]
+
+data  <- apply(!is.na(train), 2, sum) > 19621  # which is the number of observations
+train <- train[, data]
+test  <- test[, data]
+
+
+
+
+
+
+```
+
+## Split data for cross validation
+
+
+```{r SPlit}
+
+library(caret)
+set.seed(786)
+inTrain <- createDataPartition(y=train$classe, p=0.60, list=FALSE)
+training_set  <- train[inTrain,]
+validation_set  <- train[-inTrain,]
+dim(training_set)
+dim(validation_set)
+
+
+```
+
+
+So now we have 11776 values in training set and 7846 in validation set.
+
+
+## Decision Tree Model
+Lets try to impliment Decision Tree algo to predict  classe
+
+```{r randomFor}
+library(randomForest)
+set.seed(786)
+modFit <- randomForest(classe ~ ., data = training_set, ntree = 1000)
+
+
+```
+
+## Validation Dataset
+
+
+```{r pred_valid}
+
+pred <- predict(modFit, validation_set, type = "class")
+confusionMatrix(pred, validation_set$classe)
+
+
+```
+## Predicting the test values
+```{r pred}
+prediction <- predict(modFit, test, type = "class")
+prediction
+
+```
